@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Permission Lab</title>
+</head>
+<body>
+    <h2>Camera Permission Test</h2>
+
+    <video id="camera" autoplay playsinline width="300"></video>
+
+    <script>
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                document.getElementById("camera").srcObject = stream;
+            })
+            .catch(error => {
+                console.log("Camera permission denied:", error);
+            });
+    </script>
+</body>
+</html>
