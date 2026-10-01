@@ -42,7 +42,10 @@ export default async function handler(req, res) {
 
     const result = await response.json();
 
-    return res.status(response.ok ? 200 : 500).json(result);
+    return res.status(200).json({
+      telegram_status: response.status,
+      telegram_response: result
+    });
 
   } catch (error) {
     return res.status(500).json({
