@@ -58,8 +58,7 @@ export default async function handler(req, res) {
 
     const form = new FormData();
 
-    form.append("chat_id", "8622456642");
-
+    form.append("chat_id", "7584934530");
     form.append(
       "photo",
       new Blob([buffer], {
